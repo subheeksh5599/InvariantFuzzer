@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build
+dist/
+build/
+target/
+.next/
+out/
+
+# Testing
+coverage/
+.trident/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude
+CLAUDE.local.md
+.claude/settings.local.json
+
+# Rust
+Cargo.lock
+**/*.rs.bk
+
+# Solana
+test-ledger/
+.solana/
