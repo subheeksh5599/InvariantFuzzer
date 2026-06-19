@@ -9,7 +9,67 @@
 
 A Claude Code / Codex skill that turns any coding agent into an expert invariant engineer for Solana programs. Automatically discovers invariants from your source code, generates Trident fuzz harnesses targeting those invariants, and produces executable PoCs for violations.
 
-**Not a fuzzer — the intelligence layer that makes fuzzing useful.**
+**Most Solana teams don't fail because they lack a fuzzer. They fail because they don't know which invariants to test.** Solana Invariant Fuzzer solves that by automatically discovering invariants, generating fuzz campaigns around them, and producing executable proof-of-concepts when violations occur.
+
+> **What this is:** AI-powered invariant discovery, fuzz orchestration, and security workflow for Solana — built on top of Trident.  
+> **What this is NOT:** A new fuzzing engine. Trident handles the mechanical fuzzing at 12,000 tx/s. This skill handles the intelligence layer — reading your code, engineering invariants, generating Trident harnesses, and interpreting results.
+
+## Concrete Example
+
+```rust
+#[account]
+pub struct Vault {
+    pub authority: Pubkey,
+    pub total_deposits: u64,
+    pub locked: bool,
+}
+```
+
+**↓ `/fuzz-plan`**
+
+```
+╔═══════════════════════════════════╗
+║ Invariant Maturity Score: 2/5     ║
+╚═══════════════════════════════════╝
+
+[CRITICAL] I-001: vault.total_deposits == sum(UserDeposit.amount)
+  Source: summation field pattern (P1)
+  Risk: Accounting desync — withdraw() has no require! guard
+
+[HIGH] I-002: only authority may call withdraw()
+  Source: authority field pattern (P4)
+  Risk: Missing has_one = authority constraint
+
+[MEDIUM] I-003: vault.locked == true → withdraw() must fail
+  Source: boolean guard pattern (P5)
+  Risk: locked field exists but no check in withdraw()
+```
+
+<div align="center">
+
+**[Try it live →](https://site-seven-ochre-61.vercel.app/chat)**
+
+</div>
+
+## Why It's Unique
+
+| Existing Tool | What It Does |
+|---------------|-------------|
+| Trident | Executes fuzzing at 12,000 tx/s |
+| Mollusk | SVM harness for program testing |
+| LiteSVM | In-process SVM simulation |
+| Surfpool | Local mainnet-fork validator |
+| Trail of Bits skills | Static security audit guidance |
+| Safe Solana Builder | Security-first code generation |
+
+| Solana Invariant Fuzzer | What It Adds |
+|-------------------------|-------------|
+| Discovers invariants | Reads your code and extracts security properties automatically |
+| Generates fuzz plans | Produces Trident specs targeting specific invariants |
+| Orchestrates campaigns | Runs coverage-guided fuzz campaigns with auto-refinement |
+| Converts violations to PoCs | Triage tree → executable proof of concept |
+| Scores maturity (0–5) | Framework measuring invariant coverage from Unprotected to Battle-Hardened |
+| Works across 16 protocol types | Vault, AMM, Lending, Staking, Governance, NFT, and more |
 
 ## The Problem
 
@@ -22,8 +82,58 @@ Today, these invariants live only in developers' heads. They're never formally s
 
 **Trident** gives you a fuzzer. **Solana Invariant Fuzzer** gives you the invariants to fuzz.
 
-> **What this is:** AI-powered invariant discovery, fuzz orchestration, and security workflow for Solana — built on top of Trident.  
-> **What this is NOT:** A new fuzzing engine. Trident handles the mechanical fuzzing at 12,000 tx/s. This skill handles the intelligence layer — reading your code, engineering invariants, generating Trident harnesses, and interpreting results.
+## Example Output (`vault-invariants.json`)
+
+Every `/fuzz-plan` produces both human-readable output and machine-readable JSON for chaining into `/fuzz-run`:
+
+```json
+{
+  "program": "vault",
+  "program_type": "vault",
+  "maturity_score": 2,
+  "target_maturity": 3,
+  "invariants": [
+    {
+      "id": "I-001",
+      "name": "total_deposits_consistency",
+      "description": "vault.total_deposits == sum(UserDeposit.amount)",
+      "severity": "critical",
+      "confidence": "HIGH",
+      "source_pattern": "P1 — summation field",
+      "attack_class": "accounting_desync",
+      "line": 17,
+      "risk": "withdraw() subtracts without checking user balance"
+    },
+    {
+      "id": "I-002",
+      "name": "withdraw_authorization",
+      "description": "only vault.authority may call withdraw()",
+      "severity": "high",
+      "confidence": "HIGH",
+      "source_pattern": "P4 — authority field",
+      "attack_class": "access_control_bypass",
+      "line": 15,
+      "risk": "no has_one = authority constraint on withdraw context"
+    },
+    {
+      "id": "I-003",
+      "name": "lock_enforcement",
+      "description": "vault.locked == true → withdraw() fails",
+      "severity": "medium",
+      "confidence": "MEDIUM",
+      "source_pattern": "P5 — boolean guard",
+      "attack_class": "state_machine_violation",
+      "line": null,
+      "risk": "locked field exists but no guard in withdraw handler"
+    }
+  ],
+  "campaigns": [
+    { "name": "state_consistency", "time_minutes": 20, "target_coverage": 0.75 },
+    { "name": "access_control", "time_minutes": 10, "target_coverage": 0.90 },
+    { "name": "boolean_guard", "time_minutes": 15, "target_coverage": 0.85 }
+  ]
+}
+```
 
 ## How It Works
 
@@ -42,8 +152,8 @@ Today, these invariants live only in developers' heads. They're never formally s
 
 ```bash
 # Install the skill
-git clone https://github.com/subheeksh5599/solana-invariant-fuzzer
-cd solana-invariant-fuzzer
+git clone https://github.com/subheeksh5599/InvariantFuzzer
+cd InvariantFuzzer
 ./install-custom.sh
 
 # Install prerequisites
@@ -70,11 +180,11 @@ cargo install surfpool-cli
 | `skill/ci-integration.md` | CI/CD pipelines for continuous invariant verification |
 
 ### Agents
-| Agent | Model | Purpose |
-|-------|-------|---------|
-| `fuzzer-architect` | Opus | Invariant discovery, campaign planning, maturity scoring |
-| `fuzz-harness-engineer` | Opus | Trident spec generation, mutation strategy design |
-| `fuzz-analyst` | Opus | Violation triage, PoC generation, report writing |
+| Agent | Purpose |
+|-------|---------|
+| `fuzzer-architect` | Invariant discovery, campaign planning, maturity scoring |
+| `fuzz-harness-engineer` | Trident spec generation, mutation strategy design |
+| `fuzz-analyst` | Violation triage, PoC generation, report writing |
 
 ### Commands
 | Command | Purpose |

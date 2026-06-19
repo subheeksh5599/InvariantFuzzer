@@ -86,11 +86,11 @@ Use when the user asks:
 
 ### 2. Route to the Right Agent
 
-| Intent | Agent | Model |
-|--------|-------|-------|
-| Invariant discovery + campaign planning | fuzzer-architect | opus |
-| Harness generation + fuzz spec writing | fuzz-harness-engineer | opus |
-| Violation triage + PoC generation | fuzz-analyst | opus |
+| Intent | Agent |
+|--------|-------|
+| Invariant discovery + campaign planning | fuzzer-architect |
+| Harness generation + fuzz spec writing | fuzz-harness-engineer |
+| Violation triage + PoC generation | fuzz-analyst |
 
 ### 3. Execute the Phase
 
