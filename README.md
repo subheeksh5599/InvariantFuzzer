@@ -5,6 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Solana](https://img.shields.io/badge/Solana-black?logo=solana)](https://solana.com)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-powered-orange)](https://claude.ai)
+[![Live Site](https://img.shields.io/badge/live-site-green)](https://site-seven-ochre-61.vercel.app)
 
 A Claude Code / Codex skill that turns any coding agent into an expert invariant engineer for Solana programs. Automatically discovers invariants from your source code, generates Trident fuzz harnesses targeting those invariants, and produces executable PoCs for violations.
 

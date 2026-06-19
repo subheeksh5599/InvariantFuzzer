@@ -129,7 +129,7 @@ export function ChatInterface(): ReactNode {
         <div className="flex items-center gap-2">
           <ThemeSwitch />
           <Link
-            href="https://github.com/subheeksh5599/solana-invariant-fuzzer"
+            href="https://github.com/subheeksh5599/InvariantFuzzer"
             target="_blank"
             className="text-xs text-muted-foreground hover:text-foreground transition-colors ml-2"
           >

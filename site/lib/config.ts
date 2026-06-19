@@ -9,9 +9,9 @@ export const siteConfig = {
   tagline: "AI-Powered Invariant Discovery & Fuzz Orchestration",
   description:
     "The first AI-native invariant engineering skill for Solana programs. Reads your code, discovers invariants, generates Trident fuzz harnesses, and produces executable PoCs for violations.",
-  url: "https://invariant-fuzzer.superteam.codes",
+  url: "https://site-seven-ochre-61.vercel.app",
   twitter: "@superteambr",
-  github: "https://github.com/subheeksh5599/solana-invariant-fuzzer",
+  github: "https://github.com/subheeksh5599/InvariantFuzzer",
 
   nav: {
     cta: {
@@ -20,7 +20,7 @@ export const siteConfig = {
     },
     signIn: {
       text: "GitHub",
-      href: "https://github.com/subheeksh5599/solana-invariant-fuzzer",
+      href: "https://github.com/subheeksh5599/InvariantFuzzer",
     },
   },
 } as const;

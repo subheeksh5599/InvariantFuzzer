@@ -10,7 +10,7 @@ const footerLinks = {
   ],
   Resources: [
     { label: "Documentation", href: "#" },
-    { label: "GitHub", href: "https://github.com/subheeksh5599/solana-invariant-fuzzer" },
+    { label: "GitHub", href: "https://github.com/subheeksh5599/InvariantFuzzer" },
     { label: "Solana AI Kit", href: "https://github.com/solanabr/solana-ai-kit" },
   ],
   Ecosystem: [

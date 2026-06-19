@@ -4,13 +4,13 @@ export const siteConfig = {
   name: "Solana Invariant Fuzzer",
   description:
     "The first AI-powered invariant engineering and fuzz orchestration skill for Solana programs. Discover invariants, generate Trident fuzz harnesses, and produce executable PoCs.",
-  url: "https://invariant-fuzzer.superteam.codes",
+  url: "https://site-seven-ochre-61.vercel.app",
   ogImage: "/og-image.png",
   creator: "@superteambr",
   authors: [
     {
       name: "Solana Invariant Fuzzer Contributors",
-      url: "https://github.com/subheeksh5599/solana-invariant-fuzzer",
+      url: "https://github.com/subheeksh5599/InvariantFuzzer",
     },
   ],
   keywords: [
