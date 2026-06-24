@@ -1,167 +1,61 @@
 ---
-name: solana-invariant-fuzzer
-description: AI-powered invariant discovery, fuzz orchestration, and security workflow for Solana — built on top of Trident. Extracts invariants from Anchor/Pinocchio/native program source, generates Trident fuzz harnesses targeting those invariants, orchestrates fuzz campaigns, and produces executable PoCs for violations. Extends solana-dev-skill for program knowledge and integrates with the Solana AI Kit agent/command system.
+name: solana-cpi-safety
+description: Detect and prevent Solana cross-program-invocation vulnerabilities — return-data spoofing, arbitrary CPI, stale-account-after-CPI, and non-canonical PDA signing — in Anchor and native programs.
 user-invocable: true
-license: MIT
-compatibility: Requires Trident CLI, surfpool, Rust toolchain, Solana CLI 1.18+
-metadata:
-  author: Solana Invariant Fuzzer Contributors
-  version: 1.0.0
 ---
 
-# Solana Invariant Fuzzer
+# Solana CPI Safety
 
-> *AI-powered invariant discovery, fuzz orchestration, and security workflow for Solana — built on top of Trident*  
-> **Extends**: [solana-dev-skill](https://github.com/solana-foundation/solana-dev-skill) — Core Solana development  
-> **Fuzz engine**: [Trident](https://github.com/Ackee-Blockchain/trident) — Solana-native fuzzer (12K tx/s, stateful)  
-> **Integrates with**: [Solana AI Kit](https://github.com/solanabr/solana-ai-kit)
+This skill covers four classes of cross-program invocation vulnerability in Solana programs. The novel core is CPI return-data spoofing: trusting `get_return_data()` without verifying the producing program is an under-documented attack surface that allows a malicious CPI callee to inject arbitrary return data into the caller's control flow. The remaining three classes — arbitrary CPI, stale account reads after CPI, and non-canonical PDA signing — are included for completeness, each with a runnable proof-of-concept harness.
 
 ## What This Skill Is For
 
-Use when the user asks:
-- "Find bugs in my Solana program"
-- "What invariants should my vault / AMM / lending protocol have?"
-- "Set up fuzzing for my Anchor program"
-- "Is my program safe from [reentrancy / arithmetic bugs / access control flaws]?"
-- "Generate a fuzz harness targeting these invariants"
-- "Run a fuzz campaign against my deployed program"
-- "Triage these fuzz violations — are they real bugs?"
+Use this skill when you are:
 
-## How It Works
+- Working with Solana cross-program invocations — `invoke`, `invoke_signed`, or Anchor's `CpiContext::new` / `CpiContext::new_with_signer`
+- Reading CPI return data with `get_return_data()` or the `sol_get_return_data` syscall
+- Invoking a program whose address comes from a caller-supplied account (arbitrary CPI exposure)
+- Auditing or writing Anchor programs, native programs, or Pinocchio programs that cross program boundaries
+- Reviewing how your program handles account state after a CPI returns
+- Running a structured CPI security audit against a program or PR
 
-```
- ┌────────────── INVARIANT DISCOVERY ──────────────┐
- │  AI reads program source + IDL                   │
- │  Extracts invariants from structs, constraints,   │
- │  instruction logic, and known attack patterns     │
- │  Output: human-readable plan + machine JSON       │
- └──────────────────────┬───────────────────────────┘
-                        │
- ┌──────────────────────▼───────────────────────────┐
- │  HARNESS ORCHESTRATION                            │
- │  AI generates Trident fuzz spec + mutation         │
- │  strategies targeting each discovered invariant    │
- │  Output: fuzz_target/ + trident-spec.json         │
- └──────────────────────┬───────────────────────────┘
-                        │
- ┌──────────────────────▼───────────────────────────┐
- │  FUZZ EXECUTION (Trident does the heavy lifting)   │
- │  trident fuzz run <target> --time 30m              │
- │  AI monitors coverage, invariants, violations      │
- │  Output: coverage maps, violation traces           │
- └──────────────────────┬───────────────────────────┘
-                        │
- ┌──────────────────────▼───────────────────────────┐
- │  TRIAGE + PoC GENERATION                           │
- │  AI classifies violations, generates minimal       │
- │  reproducible transaction sequences                │
- │  Output: ranked findings + executable PoCs         │
- └───────────────────────────────────────────────────┘
-```
+## Task Routing Guide
 
-## Default Stack Decisions
-
-| Layer | Choice | Rationale |
-|-------|--------|-----------|
-| Fuzz engine | Trident | Solana-native, 12K tx/s, stateful, SF-granted |
-| Test network | Surfpool (mainnet-fork) | Fast local fork, matches real state |
-| Invariant format | JSON + Markdown | Machine-readable for chaining, human-readable for review |
-| Program analysis | Anchor IDL + source | 99% of programs use Anchor |
-| Harness language | Rust (Trident macros) | Native performance, Anchor compatibility |
-| PoC output | Standalone Rust test | Runnable immediately, no setup |
-
-## Operating Procedure
-
-### 1. Classify the Task
-
-| User intent | Phase | Primary skill file(s) |
-|-------------|-------|-----------------------|
-| "Find invariants for my program" | Discovery | invariant-extraction.md, invariant-templates.md |
-| "What maturity level is my program?" | Scoring | invariant-maturity-model.md |
-| "Check for [vuln class]" | Analysis | known-attack-vectors.md |
-| "Generate a fuzz harness" | Harness | harness-generation.md |
-| "Run a fuzz campaign" | Execution | harness-generation.md (via Trident) |
-| "Diagnose this violation" | Triage | poc-generation.md |
-| "Set up CI fuzzing" | Integration | ci-integration.md |
-
-### 2. Route to the Right Agent
-
-| Intent | Agent |
-|--------|-------|
-| Invariant discovery + campaign planning | fuzzer-architect |
-| Harness generation + fuzz spec writing | fuzz-harness-engineer |
-| Violation triage + PoC generation | fuzz-analyst |
-
-### 3. Execute the Phase
-
-See each sub-skill for detailed phase instructions.
-
-### 4. Deliverables
-
-- **Plan phase**: Markdown report + `*-invariants.json` file
-- **Harness phase**: `fuzz_target/` directory with Trident spec + Rust target
-- **Report phase**: Ranked findings (Critical → Info) with executable PoCs
-- **All phases**: Invariant Maturity Score (0-5) for the program
-
----
-
-## Progressive Disclosure (Load When Needed)
-
-### Core Intelligence Layer
-
-| File | Purpose | Load when... |
-|------|---------|-------------|
-| [invariant-extraction.md](invariant-extraction.md) | 22+ extraction patterns with code examples | Planning invariants |
-| [invariant-templates.md](invariant-templates.md) | 16 protocol categories, 130+ pre-built invariants | Planning invariants |
-| [invariant-maturity-model.md](invariant-maturity-model.md) | 0-5 scoring framework for program security maturity | Scoring a program |
-| [known-attack-vectors.md](known-attack-vectors.md) | Solana-specific vulnerability catalog | Auditing / checking for known bugs |
-
-### Execution Layer
-
-| File | Purpose | Load when... |
-|------|---------|-------------|
-| [harness-generation.md](harness-generation.md) | Trident spec generation from invariants | Building fuzz harnesses |
-| [poc-generation.md](poc-generation.md) | From violation trace → executable PoC | Triage / report phase |
-| [coverage-analysis.md](coverage-analysis.md) | Interpreting coverage gaps | After fuzz campaign |
-| [ci-integration.md](ci-integration.md) | GitHub Actions + Surfpool CI pipeline | Setting up continuous fuzzing |
-
-### Reference
-
-| File | Purpose |
-|------|---------|
-| [resources.md](resources.md) | External tools, papers, references |
-
----
-
-## Invariant Maturity Model (Quick Reference)
-
-The model scores programs 0-5. Every `/fuzz-plan` output includes the score.
-
-| Level | Name | What it means |
-|-------|------|---------------|
-| 0 | Unprotected | No invariants documented or tested |
-| 1 | Guarded | Basic access control invariants checked |
-| 2 | Consistent | State consistency invariants verified |
-| 3 | Economically Sound | Economic invariants modeled and tested |
-| 4 | Cross-Program Safe | Cross-program interaction invariants validated |
-| 5 | Battle-Hardened | Production-grade fuzz coverage, CI integration |
-
-See [invariant-maturity-model.md](invariant-maturity-model.md) for full details.
-
----
+| When you are... | Read |
+|----------------|------|
+| Trusting CPI return data / using `get_return_data` without verifying the producer | [cpi-return-data-spoofing.md](cpi-return-data-spoofing.md) |
+| CPIing a caller-supplied program / program substitution / fake-SPL attack | [arbitrary-cpi.md](arbitrary-cpi.md) |
+| Reading an account after a CPI mutated it (stale data / missing reload) | [account-reload.md](account-reload.md) |
+| Signing a CPI with `invoke_signed` / PDA bump and seed safety | [pda-cpi-signing.md](pda-cpi-signing.md) |
+| Building, running, or extending the runnable PoCs | [poc-harness.md](poc-harness.md) |
+| Running a structured CPI audit / reviewing the check items | [cpi-checklist.md](cpi-checklist.md) |
 
 ## Commands
 
-| Command | Purpose |
-|---------|---------|
-| `/fuzz-plan` | Analyze program, extract invariants, score maturity, output plan |
-| `/fuzz-run` | Generate Trident harness + execute fuzz campaign |
-| `/fuzz-report` | Triage violations, generate PoCs, produce finding report |
+| Command | Description |
+|---------|-------------|
+| `/audit-cpi` | Checklist-driven CPI safety review across all four vulnerability classes (see [audit-cpi.md](../../commands/audit-cpi.md), driven by [cpi-checklist.md](cpi-checklist.md)) |
 
 ## Agents
 
 | Agent | Purpose |
 |-------|---------|
-| **fuzzer-architect** | Invariant discovery, campaign planning, maturity scoring |
-| **fuzz-harness-engineer** | Trident spec generation, mutation strategy design |
-| **fuzz-analyst** | Violation triage, PoC generation, report writing |
+| `cpi-auditor` | Read-only CPI security auditor that runs the `/audit-cpi` flow against a target program or PR (see [cpi-auditor.md](../../agents/cpi-auditor.md)) |
+
+## Progressive Disclosure
+
+Sub-skills to read when needed:
+
+- [cpi-return-data-spoofing.md](cpi-return-data-spoofing.md) — The novel crown jewel: return-data injection via unverified `get_return_data()` callee, with exploit mechanics, detection patterns, and Anchor/native mitigations.
+- [arbitrary-cpi.md](arbitrary-cpi.md) — Program substitution attacks where a caller-supplied account replaces the expected program; includes fake-SPL token program patterns.
+- [account-reload.md](account-reload.md) — Stale account data after a CPI mutates on-chain state; when and how to reload accounts in Anchor and native programs.
+- [pda-cpi-signing.md](pda-cpi-signing.md) — Safe use of `invoke_signed` with PDA signer seeds, canonical bump enforcement, and seed collision risks.
+- [poc-harness.md](poc-harness.md) — LiteSVM-based proof-of-concept test harness shared across all four vulnerability classes; how to build, run, and extend the PoCs.
+- [cpi-checklist.md](cpi-checklist.md) — Structured audit checklist covering all four CPI vulnerability classes; used by the `/audit-cpi` command and `cpi-auditor` agent.
+
+## Related skills
+
+This skill is part of the RECTOR-LABS Solana security suite (find -> prove -> respond). The following companion skills are planned and not yet available:
+
+- **solana-poc-forge** — forge standalone runnable proof-of-concept exploits for Solana programs (generalizes the PoC harness in [poc-harness.md](poc-harness.md)).
+- **solana-incident-response** — triage, contain, and disclose live Solana security incidents.

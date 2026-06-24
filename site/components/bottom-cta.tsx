@@ -10,14 +10,14 @@ export function BottomCTA(): ReactNode {
       <div className="relative mx-auto max-w-7xl overflow-hidden rounded-3xl bg-muted/50">
         <div className="relative z-10 px-8 py-12 sm:px-12">
           <div className="max-w-xl">
-            <h2 className="text-2xl font-medium tracking-tight text-foreground sm:text-3xl">
-              One command. Find every invariant.
-            </h2>
-            <p className="mt-3 text-lg max-w-md text-muted-foreground">
-              Install the Solana Invariant Fuzzer skill and run{" "}
-              <code className="rounded bg-background px-1.5 py-0.5 text-sm font-mono">/fuzz-plan</code>{" "}
-              on any Anchor program. 130+ invariants. 22 extraction patterns. Maturity scoring built in.
-            </p>
+              <h2 className="text-2xl font-medium tracking-tight text-foreground sm:text-3xl">
+                One command. Four vulnerability classes. Zero blind spots.
+              </h2>
+              <p className="mt-3 text-lg max-w-md text-muted-foreground">
+                Install the CPI Safety skill and run{" "}
+                <code className="rounded bg-background px-1.5 py-0.5 text-sm font-mono">/audit-cpi</code>{" "}
+                in any Solana project. Five runnable PoCs included.
+              </p>
 
             <div className="mt-8">
               <p className="mb-3 text-xs font-medium text-muted-foreground">Install in one command:</p>

@@ -15,9 +15,9 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 export const metadata: Metadata = createMetadata({
-  title: "Solana Invariant Fuzzer — AI-Powered Invariant Discovery & Fuzz Orchestration",
+  title: "Solana CPI Safety — Detect & Prevent Cross-Program Invocation Vulnerabilities",
   description:
-    "The first AI-native invariant engineering skill for Solana programs. Reads your code, discovers invariants, generates Trident fuzz harnesses, and produces executable PoCs.",
+    "A Claude Code skill that detects four classes of CPI vulnerabilities — return-data spoofing, arbitrary CPI, stale account after CPI, and non-canonical PDA signing.",
   path: "/",
 });
 
@@ -33,11 +33,15 @@ export default function HomePage(): ReactNode {
         <section className="relative py-32 md:py-48">
           <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
             <TextReveal
-              text="Every Solana program has invariants. Nobody tests them."
+              text="CPI is Solana's most common source of critical bugs."
               className="text-4xl font-medium tracking-tight text-foreground sm:text-5xl md:text-6xl lg:text-7xl"
             />
             <p className="text-muted-foreground mt-8 max-w-xl text-lg leading-relaxed">
-              Properties like <code className="rounded bg-muted px-1.5 py-0.5 text-sm font-mono">total_deposits == sum(user deposits)</code> live only in developers' heads. When they break, you learn about it from an exploit — or a six-figure audit bill.
+              Four vulnerability classes account for the majority of High and Critical audit findings:{" "}
+              <span className="text-foreground">return-data spoofing</span>,{" "}
+              <span className="text-foreground">arbitrary CPI</span>,{" "}
+              <span className="text-foreground">stale account after CPI</span>, and{" "}
+              <span className="text-foreground">non-canonical PDA signing</span>. This skill detects all four with runnable PoCs for each.
             </p>
           </div>
         </section>

@@ -1,254 +1,305 @@
-# Solana Invariant Fuzzer
+# solana-cpi-safety-skill
 
-> **AI-Powered Invariant Discovery, Fuzz Orchestration & Security Workflow for Solana — Built on Top of Trident**
+Solana CPI safety skill for Claude Code — detects and prevents four cross-program invocation vulnerability classes, with first-class coverage of CPI return-data spoofing.
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Solana](https://img.shields.io/badge/Solana-black?logo=solana)](https://solana.com)
-[![Claude Code](https://img.shields.io/badge/Claude_Code-powered-orange)](https://claude.ai)
-[![Live Site](https://img.shields.io/badge/live-site-green)](https://site-seven-ochre-61.vercel.app)
+## What it is
 
-A Claude Code / Codex skill that turns any coding agent into an expert invariant engineer for Solana programs. Automatically discovers invariants from your source code, generates Trident fuzz harnesses targeting those invariants, and produces executable PoCs for violations.
+Cross-program invocation is Solana's most common source of severe, exploitable bugs. This skill teaches Claude Code to recognize, explain, and fix the four classes that account for the majority of High and Critical audit findings:
 
-**Most Solana teams don't fail because they lack a fuzzer. They fail because they don't know which invariants to test.** Solana Invariant Fuzzer solves that by automatically discovering invariants, generating fuzz campaigns around them, and producing executable proof-of-concepts when violations occur.
+### The four CPI vulnerability classes
 
-> **What this is:** AI-powered invariant discovery, fuzz orchestration, and security workflow for Solana — built on top of Trident.  
-> **What this is NOT:** A new fuzzing engine. Trident handles the mechanical fuzzing at 12,000 tx/s. This skill handles the intelligence layer — reading your code, engineering invariants, generating Trident harnesses, and interpreting results.
+| Class | Risk | What goes wrong |
+|-------|------|-----------------|
+| **CPI return-data spoofing** | Critical | Trusting `get_return_data()` without verifying the producing program. Any program can write to the return-data slot — a rogue caller replaces an oracle price before your program reads it. |
+| **Arbitrary CPI** | High | Invoking a caller-supplied program id — enables fake SPL Token programs and attacker-controlled code executing inside the victim vault. |
+| **Stale account after CPI** | High | Reading account state a callee mutated without reloading from the ledger. |
+| **PDA CPI signing** | Medium-High | `invoke_signed` with non-canonical bumps or leaked signer seeds — enables unauthorized signing. |
 
-## Concrete Example
+### The novel core: CPI return-data spoofing
 
-```rust
-#[account]
-pub struct Vault {
-    pub authority: Pubkey,
-    pub total_deposits: u64,
-    pub locked: bool,
-}
-```
+The crown-jewel coverage is CPI return-data spoofing. It is the least-documented of the four classes and the hardest to catch in review. The attack surface is the `set_return_data` / `get_return_data` syscall pair: any program invoked before yours (or by yours) can overwrite the slot. A DeFi program that calls an oracle CPI and then reads `get_return_data()` without checking `program_id == ORACLE_PROGRAM_ID` is fully exploitable.
 
-**↓ `/fuzz-plan`**
+This skill is anchored on a real upstream-fixed finding: Anchor CPI return-data spoofing, CVSS 7.5, fixed upstream, placing 1st of 116 across a 14-protocol audit.
 
-```
-╔═══════════════════════════════════╗
-║ Invariant Maturity Score: 2/5     ║
-╚═══════════════════════════════════╝
+Both Anchor and native/Pinocchio patterns are covered.
 
-[CRITICAL] I-001: vault.total_deposits == sum(UserDeposit.amount)
-  Source: summation field pattern (P1)
-  Risk: Accounting desync — withdraw() has no require! guard
+## What is inside
 
-[HIGH] I-002: only authority may call withdraw()
-  Source: authority field pattern (P4)
-  Risk: Missing has_one = authority constraint
-
-[MEDIUM] I-003: vault.locked == true → withdraw() must fail
-  Source: boolean guard pattern (P5)
-  Risk: locked field exists but no check in withdraw()
-```
-
-<div align="center">
-
-**[Try it live →](https://site-seven-ochre-61.vercel.app/chat)**
-
-</div>
-
-## Why It's Unique
-
-| Existing Tool | What It Does |
-|---------------|-------------|
-| Trident | Executes fuzzing at 12,000 tx/s |
-| Mollusk | SVM harness for program testing |
-| LiteSVM | In-process SVM simulation |
-| Surfpool | Local mainnet-fork validator |
-| Trail of Bits skills | Static security audit guidance |
-| Safe Solana Builder | Security-first code generation |
-
-| Solana Invariant Fuzzer | What It Adds |
-|-------------------------|-------------|
-| Discovers invariants | Reads your code and extracts security properties automatically |
-| Generates fuzz plans | Produces Trident specs targeting specific invariants |
-| Orchestrates campaigns | Runs coverage-guided fuzz campaigns with auto-refinement |
-| Converts violations to PoCs | Triage tree → executable proof of concept |
-| Scores maturity (0–5) | Framework measuring invariant coverage from Unprotected to Battle-Hardened |
-| Works across 16 protocol types | Vault, AMM, Lending, Staking, Governance, NFT, and more |
-
-## The Problem
-
-Every Solana program has invariants — properties that must always hold:
-- *"Total deposits must equal the sum of all user deposits"*
-- *"Only the authority can withdraw funds"*
-- *"A locked vault rejects all state changes"*
-
-Today, these invariants live only in developers' heads. They're never formally specified, never systematically tested, and never checked in CI. When they break, you learn about it from an exploit — or an auditor's bill.
-
-**Trident** gives you a fuzzer. **Solana Invariant Fuzzer** gives you the invariants to fuzz.
-
-## Example Output (`vault-invariants.json`)
-
-Every `/fuzz-plan` produces both human-readable output and machine-readable JSON for chaining into `/fuzz-run`:
-
-```json
-{
-  "program": "vault",
-  "program_type": "vault",
-  "maturity_score": 2,
-  "target_maturity": 3,
-  "invariants": [
-    {
-      "id": "I-001",
-      "name": "total_deposits_consistency",
-      "description": "vault.total_deposits == sum(UserDeposit.amount)",
-      "severity": "critical",
-      "confidence": "HIGH",
-      "source_pattern": "P1 — summation field",
-      "attack_class": "accounting_desync",
-      "line": 17,
-      "risk": "withdraw() subtracts without checking user balance"
-    },
-    {
-      "id": "I-002",
-      "name": "withdraw_authorization",
-      "description": "only vault.authority may call withdraw()",
-      "severity": "high",
-      "confidence": "HIGH",
-      "source_pattern": "P4 — authority field",
-      "attack_class": "access_control_bypass",
-      "line": 15,
-      "risk": "no has_one = authority constraint on withdraw context"
-    },
-    {
-      "id": "I-003",
-      "name": "lock_enforcement",
-      "description": "vault.locked == true → withdraw() fails",
-      "severity": "medium",
-      "confidence": "MEDIUM",
-      "source_pattern": "P5 — boolean guard",
-      "attack_class": "state_machine_violation",
-      "line": null,
-      "risk": "locked field exists but no guard in withdraw handler"
-    }
-  ],
-  "campaigns": [
-    { "name": "state_consistency", "time_minutes": 20, "target_coverage": 0.75 },
-    { "name": "access_control", "time_minutes": 10, "target_coverage": 0.90 },
-    { "name": "boolean_guard", "time_minutes": 15, "target_coverage": 0.85 }
-  ]
-}
-```
-
-## How It Works
+### Skill bundle
 
 ```
-1. /fuzz-plan      →   AI reads your program, extracts invariants,
-                        scores maturity (0-5), outputs plan + JSON
+skills/
+  solana-cpi-safety/
+    SKILL.md                    # Routing entry point
+    cpi-return-data-spoofing.md # Crown jewel sub-skill
+    arbitrary-cpi.md            # Arbitrary CPI sub-skill
+    account-reload.md           # Stale account sub-skill
+    pda-cpi-signing.md          # PDA signing sub-skill
+    poc-harness.md              # PoC test harness guide
+    cpi-checklist.md            # Pre-audit CPI checklist
+    rules/
+      rust.md                   # Rust code rule (Cursor-style globs frontmatter)
 
-2. /fuzz-run       →   AI generates Trident harness targeting the
-                        invariants, executes fuzz campaign
+agents/
+  cpi-auditor.md                # Autonomous CPI audit agent
 
-3. /fuzz-report    →   AI triages violations, classifies severity,
-                        generates executable PoCs
+commands/
+  audit-cpi.md                  # /audit-cpi command
+
+poc/
+  return-data-spoofing/         # Runnable LiteSVM + TypeScript PoC (incl. Variant B)
+  pinocchio-return-data/        # Runnable LiteSVM PoC (Pinocchio crown-jewel variant)
+  arbitrary-cpi/                # Runnable LiteSVM + TypeScript PoC
+  account-reload/               # Runnable LiteSVM + TypeScript PoC
+  pda-cpi-signing/              # Runnable LiteSVM + TypeScript PoC
 ```
 
-## Quick Start
+### The /audit-cpi command
+
+Invoke `/audit-cpi` in any Claude Code session to scan a Solana repository for all four CPI vulnerability classes and produce a structured finding report with remediation steps.
+
+### The cpi-auditor agent
+
+A dedicated sub-agent that performs systematic CPI audits. Routes to the appropriate sub-skill for each finding class, writes exploit PoC sketches, and proposes fixes aligned with Anchor or native/Pinocchio idioms.
+
+### The rust.md rule
+
+A Rust code rule with Cursor-style `globs:` frontmatter (shipped as `rust.md` so it renders on GitHub). In Cursor it auto-loads on Rust file edits and routes CPI-touching changes to the relevant sub-skill and `cpi-checklist.md`. Claude Code has no auto-on-edit rule mechanism, so there it is reference material the skill cites — or drop it into a project `.claude/rules/` (with `paths:` frontmatter) for path-scoped context.
+
+### Runnable PoCs
+
+Five runnable PoCs cover the four vulnerability classes — the crown-jewel class (return-data spoofing) ships both an Anchor and a Pinocchio proof. Each PoC pairs on-chain programs (attacker + victim) with a TypeScript LiteSVM test suite running EXPLOIT / DEFENSE / POSITIVE CONTROL cases. Programs are Anchor except where noted:
+
+**poc/return-data-spoofing/** (crown jewel; 6 cases)
+- EXPLOIT: victim adopts the spoofed price written by the attacker program
+- DEFENSE: `UntrustedProducer` error raised when the producer check fails
+- POSITIVE CONTROL: accepts return data from the real oracle program
+- Variant B (deeper-stack leak): a benign relay surfaces a deeper program's return data — EXPLOIT adopts a deep attacker's spoof, DEFENSE rejects it via the producer check, POSITIVE accepts the real oracle
+
+**poc/pinocchio-return-data/** (crown jewel, Pinocchio; 3 cases)
+- The same exploit and fix as the Anchor return-data PoC, written against raw Pinocchio (`pinocchio::cpi`, `AccountView`, `Address`) and built with `cargo-build-sbf`
+- One `consumer` program selects the unchecked vs checked path via a one-byte instruction discriminator (0 = vulnerable, 1 = fixed)
+- EXPLOIT adopts the attacker's spoofed `1`; DEFENSE rejects with `UntrustedProducer`; POSITIVE accepts the trusted oracle's `50_000`
+
+**poc/arbitrary-cpi/**
+- EXPLOIT: attacker substitutes a fake SPL Token program; attacker-controlled code executes inside the vault's CPI
+- DEFENSE: explicit program_id check rejects the substitution before any CPI is opened
+- POSITIVE CONTROL: the real SPL Token program succeeds
+
+**poc/account-reload/**
+- EXPLOIT: a vulnerable consumer checks a pre-CPI balance snapshot, so a vault drained by the CPI passes a solvency check
+- DEFENSE: the fixed consumer re-reads after the CPI (the `reload()` lesson) and rejects the drained vault
+- POSITIVE CONTROL: a partial withdrawal that stays solvent is accepted
+
+**poc/pda-cpi-signing/**
+- EXPLOIT: a vault PDA signs (`invoke_signed`) with seeds `[b"vault", authority]`, but the authority is never required to sign — an attacker drains a victim's vault by passing the victim's pubkey unsigned
+- DEFENSE: the fixed program requires the authority to sign, rejecting the unsigned drain
+- POSITIVE CONTROL: the real authority withdraws from its own vault
+- A second test file (`non-canonical-bump.test.ts`) covers the non-canonical-bump facet: a vulnerable program creates a one-per-user registry PDA via `invoke_signed` with a caller-supplied bump, so an attacker registers the same user twice (canonical then a non-canonical bump) to mint duplicate accounts; the fixed program pins the canonical bump via `find_program_address`
+
+## Quickstart
+
+### Install
+
+One-line install (recommended) — full bundle (skill + `/audit-cpi` command + `cpi-auditor` agent), global (`~/.claude`):
 
 ```bash
-# Install the skill
-git clone https://github.com/subheeksh5599/InvariantFuzzer
+npx @rector-labs/solana-cpi-safety-skill
+# project-local instead: npx @rector-labs/solana-cpi-safety-skill --project
+```
+
+Skill-only, via the open agent-skills ecosystem:
+
+```bash
+npx skills add RECTOR-LABS/solana-cpi-safety-skill
+```
+
+As a native Claude Code plugin (full bundle), via the RECTOR-LABS marketplace:
+
+```bash
+/plugin marketplace add RECTOR-LABS/claude-plugins
+/plugin install solana-cpi-safety@rector-labs
+```
+
+From a clone (runs the same installer locally):
+
+```bash
+git clone https://github.com/subheeksh5599/InvariantFuzzer.git
 cd InvariantFuzzer
-./install-custom.sh
-
-# Install prerequisites
-cargo install trident-cli
-cargo install surfpool-cli
-
-# In Claude Code, analyze your program
-/fuzz-plan --target programs/vault --depth deep
+node bin/cli.mjs                      # global (~/.claude)
+# project-local: node bin/cli.mjs --project              # ./.claude
+# custom base:   node bin/cli.mjs --target <dir>         # <dir> is a config base: installs <dir>/skills, <dir>/commands, <dir>/agents
 ```
 
-## What's Included
+Then restart Claude Code. Note: installed as a plugin the command is namespaced `/solana-cpi-safety:audit-cpi`; via npx or the local installer it is `/audit-cpi`.
 
-### Skill Hub (Progressive Loading)
-| File | Purpose |
+### Run a PoC
+
+The compiled programs and their keypairs are committed, so the PoCs run with Node alone — no Solana/Anchor toolchain required.
+
+```bash
+# Return-data spoofing PoC
+cd poc/return-data-spoofing
+npm install
+npm test
+```
+
+6 tests run, 6 pass (Variant A + Variant B deeper-stack):
+- EXPLOIT: "vulnerable consumer trusts spoofed return data" — tx succeeds, consumer
+  adopts attacker-set price 1 (spoofed value confirmed in return data)
+- DEFENSE: "fixed consumer rejects attacker oracle" — tx fails with error UntrustedProducer
+- POSITIVE CONTROL: "fixed consumer accepts legitimate oracle" — tx succeeds, consumer
+  reads real oracle price 50000
+- Variant B (deeper-stack leak): EXPLOIT adopts a deep attacker's spoof through a benign
+  relay; DEFENSE rejects it via the producer check; POSITIVE accepts the real oracle
+
+```bash
+# Arbitrary CPI PoC
+cd poc/arbitrary-cpi
+npm install
+npm test
+```
+
+3 tests run, 3 pass:
+- EXPLOIT: "vault_vulnerable accepts fake_token program substitution" — tx succeeds,
+  return data byte 0 = 1 proving fake_token (attacker program) executed
+- DEFENSE: "vault_fixed rejects fake_token program substitution" — tx fails with error
+  WrongTokenProgram
+- POSITIVE CONTROL: "vault_fixed accepts real_token" — tx succeeds, return data byte 0 = 0
+
+```bash
+# account-reload (stale-account-after-CPI) PoC
+cd poc/account-reload && npm install && npm test
+# pda-cpi-signing (invoke_signed) PoC
+cd poc/pda-cpi-signing && npm install && npm test
+# pinocchio-return-data (Pinocchio crown-jewel variant) PoC
+cd poc/pinocchio-return-data && npm install && npm test
+```
+
+These run the same EXPLOIT / DEFENSE / POSITIVE CONTROL shape (3 tests each).
+
+#### Rebuild the programs from source (optional)
+
+With Anchor 1.0.2 and the Solana toolchain installed, run `anchor build` inside an Anchor `poc/<scenario>/` directory. The `pinocchio-return-data` PoC is built with `cargo-build-sbf` instead (see CLAUDE.md for the toolchain notes). The committed program keypairs keep the program ids stable across rebuilds.
+
+### Use in Claude Code
+
+After installing, open any Claude Code session in a Solana project and ask:
+
+```
+Audit this program for CPI vulnerabilities
+/audit-cpi
+Are there any return-data spoofing risks in programs/my-program/src/lib.rs?
+Review this CPI call for arbitrary-program substitution
+```
+
+## Adding to Solana AI Kit
+
+The kit (solanabr/solana-ai-kit) registers external skills as git submodules under `.claude/skills/ext/<name>`. To add this skill:
+
+```bash
+git submodule add https://github.com/RECTOR-LABS/solana-cpi-safety-skill.git .claude/skills/ext/solana-cpi-safety
+```
+
+The resulting `.gitmodules` block (ready to paste):
+
+```
+[submodule ".claude/skills/ext/solana-cpi-safety"]
+    path = .claude/skills/ext/solana-cpi-safety
+    url = https://github.com/RECTOR-LABS/solana-cpi-safety-skill.git
+```
+
+## Requirements (for the PoCs)
+
+To run the PoCs (primary path — programs are precompiled):
+
+| Tool | Version |
 |------|---------|
-| `skill/SKILL.md` | Entry point — routes to sub-skills based on user intent |
-| `skill/invariant-extraction.md` | 22 code patterns AI uses to extract invariants |
-| `skill/invariant-templates.md` | 16 protocol categories, 130+ pre-built invariants |
-| `skill/invariant-maturity-model.md` | 0-5 scoring framework for program security maturity |
-| `skill/known-attack-vectors.md` | Solana-specific vulnerability catalog |
-| `skill/harness-generation.md` | Trident fuzz harness generation from invariants |
-| `skill/poc-generation.md` | From violation → executable proof of concept |
-| `skill/coverage-analysis.md` | Coverage gap analysis and campaign refinement |
-| `skill/ci-integration.md` | CI/CD pipelines for continuous invariant verification |
+| Node.js | >= 20 |
 
-### Agents
-| Agent | Purpose |
-|-------|---------|
-| `fuzzer-architect` | Invariant discovery, campaign planning, maturity scoring |
-| `fuzz-harness-engineer` | Trident spec generation, mutation strategy design |
-| `fuzz-analyst` | Violation triage, PoC generation, report writing |
+To rebuild the programs from source (optional):
 
-### Commands
-| Command | Purpose |
-|---------|---------|
-| `/fuzz-plan` | Analyze program, extract invariants, score maturity |
-| `/fuzz-run` | Generate Trident harness + execute fuzz campaign |
-| `/fuzz-report` | Triage violations, generate PoCs, produce report |
+| Tool | Version |
+|------|---------|
+| Anchor | 1.0.2 |
+| Solana / Agave CLI | 3.x |
+| Rust | 1.85+ |
+| Node.js | >= 20 |
 
-## Supported Program Types
+The skill bundle (skills/solana-cpi-safety/, commands/, agents/) has no runtime requirements — it is plain Markdown.
 
-Invariant templates exist for 16 program categories:
-Vault · AMM · Lending · Staking · Governance · NFT · Escrow · Bridge · Token · CLMM · Multisig · Perps · Oracle · Auction · Treasury · Name Service
-
-Plus 14 universal invariants that apply to every Solana program.
-
-## Invariant Maturity Model
+## Repository structure
 
 ```
-Level 0 — Unprotected        No invariants
-Level 1 — Guarded            Access control invariants
-Level 2 — Consistent         State consistency invariants
-Level 3 — Economically Sound Economic invariants
-Level 4 — Cross-Program Safe  CPI/interaction invariants
-Level 5 — Battle-Hardened    CI-integrated, >90% fuzz coverage
+solana-cpi-safety-skill/
+  README.md                   # This file
+  CLAUDE.md                   # Contributor guidance
+  LICENSE                     # MIT
+  package.json                # npm package (@rector-labs/solana-cpi-safety-skill)
+  bin/cli.mjs                 # Zero-dependency Node installer (npx and `node bin/cli.mjs`)
+  test/                       # node:test suites (installer + manifest)
+
+  .claude-plugin/
+    plugin.json               # Claude Code plugin manifest
+
+  skills/
+    solana-cpi-safety/
+      SKILL.md
+      cpi-return-data-spoofing.md
+      arbitrary-cpi.md
+      account-reload.md
+      pda-cpi-signing.md
+      poc-harness.md
+      cpi-checklist.md
+      rules/
+        rust.md
+
+  agents/
+    cpi-auditor.md
+
+  commands/
+    audit-cpi.md
+
+  poc/
+    return-data-spoofing/
+      programs/               # Anchor victim + attacker + relay programs
+      tests/                  # LiteSVM TypeScript test suite (Variant A + B)
+    pinocchio-return-data/
+      programs/               # Pinocchio oracle + attacker + consumer programs
+      tests/                  # LiteSVM TypeScript test suite
+    arbitrary-cpi/
+      programs/               # Anchor victim + attacker programs
+      tests/                  # LiteSVM TypeScript test suite
+    account-reload/
+      programs/               # Anchor ledger + consumer programs
+      tests/                  # LiteSVM TypeScript test suite
+    pda-cpi-signing/
+      programs/               # Anchor vault programs
+      tests/                  # LiteSVM TypeScript test suite
 ```
 
-## Requirements
+## RECTOR-LABS Solana security suite
 
-- Claude Code or Codex (OpenCode)
-- [solana-dev-skill](https://github.com/solana-foundation/solana-dev-skill) (core Solana knowledge)
-- [Trident CLI](https://github.com/Ackee-Blockchain/trident) (fuzz engine)
-- [Surfpool](https://github.com/acheroncrypto/surfpool) (local mainnet fork)
+This skill is the first of a three-part Solana security workflow from RECTOR-LABS — find vulnerabilities, prove them, respond to incidents:
 
-## Repository Structure
+| Skill | Stage | Status |
+|-------|-------|--------|
+| **solana-cpi-safety** (this repo) | Find — detect and prevent CPI vulnerability classes | Available |
+| **solana-poc-forge** | Prove — forge runnable PoCs and exploits | Planned |
+| **solana-incident-response** | Respond — triage, contain, and disclose live incidents | Planned |
 
-```
-solana-invariant-fuzzer/
-├── README.md
-├── LICENSE
-├── CLAUDE.md
-├── install.sh / install-custom.sh
-├── skill/
-│   ├── SKILL.md                     # Entry hub
-│   ├── invariant-extraction.md      # ★ Core: 22 extraction patterns
-│   ├── invariant-templates.md       # ★ Core: 130+ invariants
-│   ├── invariant-maturity-model.md  # ★ Core: 0-5 scoring
-│   ├── known-attack-vectors.md      # ★ Core: Vuln catalog
-│   ├── harness-generation.md
-│   ├── poc-generation.md
-│   ├── coverage-analysis.md
-│   ├── ci-integration.md
-│   └── resources.md
-├── agents/
-│   ├── fuzzer-architect.md
-│   ├── fuzz-harness-engineer.md
-│   └── fuzz-analyst.md
-├── commands/
-│   ├── fuzz-plan.md
-│   ├── fuzz-run.md
-│   └── fuzz-report.md
-└── rules/
-    └── fuzzing.md
+All three install from the shared `rector-labs` marketplace:
+
+```bash
+/plugin marketplace add RECTOR-LABS/claude-plugins
+/plugin install solana-cpi-safety@rector-labs
 ```
 
 ## License
 
-MIT — see [LICENSE](LICENSE)
+MIT — see [LICENSE](LICENSE) for details.
+
+---
+
+Maintained by [RECTOR-LABS](https://github.com/RECTOR-LABS).
+Built for the Superteam x Solana AI Kit bounty.

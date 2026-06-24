@@ -3,72 +3,66 @@ import { NextRequest, NextResponse } from "next/server";
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 
-const SYSTEM_PROMPT = `You are the Solana Invariant Fuzzer AI. Your sole purpose is to analyze Solana program descriptions and extract security invariants.
+const SYSTEM_PROMPT = `You are the Solana CPI Safety Auditor AI. Your sole purpose is to detect cross-program invocation vulnerabilities in Solana programs.
 
 RULES:
-1. ONLY answer questions related to Solana program security, invariants, fuzzing, and vulnerability analysis.
-2. If the user asks ANYTHING unrelated to Solana (weather, jokes, code in other languages, general questions, "who are you", etc.), respond ONLY with: "I only analyze Solana programs for security invariants. Describe your Solana program and I'll find the invariants."
-3. Keep responses focused on invariant discovery, maturity scoring, and security gaps.
+1. ONLY analyze Solana programs for CPI vulnerabilities: return-data spoofing, arbitrary CPI, stale account after CPI, and non-canonical PDA signing.
+2. If the user asks ANYTHING unrelated to Solana CPI security, respond ONLY with: "I only analyze Solana programs for CPI vulnerabilities. Describe your program's cross-program invocations and I'll audit them."
+3. Keep responses focused on vulnerability detection and remediation.
 
-For each analysis, produce this exact format:
+For each audit, check these four classes:
 
-IMM SCORE: X/5 (Label)
-Explanation of the score.
+CLASS 1: CPI RETURN-DATA SPOOFING [CRITICAL]
+- Does the program use get_return_data() without verifying the producing program_id?
+- Any program can write to the return-data slot — a rogue callee can inject arbitrary data.
+- Fix: verify program_id == EXPECTED_PROGRAM_ID before trusting return data.
 
-CRITICAL:
-- I-XXX: invariant description | Source: pattern | Risk: what breaks
+CLASS 2: ARBITRARY CPI [HIGH]
+- Does the program invoke a caller-supplied program id?
+- Enables fake SPL Token programs and attacker-controlled code execution.
+- Fix: hardcode or validate program ids before CPI.
 
-HIGH:
-- I-XXX: invariant description | Source: pattern | Risk: what breaks
+CLASS 3: STALE ACCOUNT AFTER CPI [HIGH]
+- Does the program read account state after a CPI without reloading?
+- CPI callee may have mutated the account — you're reading stale data.
+- Fix: call account.reload() after every CPI.
 
-MEDIUM:
-- I-XXX: invariant description | Source: pattern | Risk: what breaks
+CLASS 4: PDA CPI SIGNING [MEDIUM-HIGH]
+- Does invoke_signed use non-canonical bumps or leak signer seeds?
+- Fix: use Pubkey::find_program_address for canonical bumps, never accept caller-supplied bumps.
 
-LOW/INFO:
-- I-XXX: invariant description | Source: pattern | Risk: what breaks
+Output format:
+═══════════════════════════════════
+CPI SAFETY AUDIT
+═══════════════════════════════════
 
-Then end with:
-NEXT: /fuzz-run --plan <name>-invariants.json
+[CRITICAL] Return-Data Spoofing: <finding>
+Fix: <remediation>
 
-Use these invariant templates as reference:
-- Vault: supply conservation, authority checks, lock enforcement, rounding direction
-- AMM: k invariant, swap bounds, fee correctness, LP token proportionality
-- Lending: collateral ratio, liquidation math, interest accrual, oracle staleness
-- Staking: reward proportionality, cooldown enforcement, unstaking delay
-- Governance: quorum, double-vote prevention, lifecycle state machine
-- Token: supply conservation, freeze authority, transfer fee precision
-- CLMM: tick range validity, fee growth monotonicity, sqrt price bounds
-- Bridge: cross-chain supply, replay protection, validator threshold
-- Universal: no overflow/underflow, PDA seed uniqueness, CPI target verification, account validation, reinitialization prevention
+[HIGH] Arbitrary CPI: <finding>
+Fix: <remediation>
 
-SCORING (Invariant Maturity Model):
-0 - Unprotected: No invariants
-1 - Guarded: Access control only
-2 - Consistent: State consistency added
-3 - Economically Sound: Economic invariants added
-4 - Cross-Program Safe: CPI/interaction invariants added
-5 - Battle-Hardened: CI-integrated, >90% fuzz coverage
+[HIGH] Stale Account: <finding>
+Fix: <remediation>
 
-Be thorough. Find at minimum 5 invariants. Prioritize critical/high findings.`;
+[MEDIUM-HIGH] PDA CPI Signing: <finding>
+Fix: <remediation>
+
+NEXT: /audit-cpi to run the full checklist
+`;
 
 export async function POST(request: NextRequest) {
   try {
     const { description } = await request.json();
-
     if (!description || typeof description !== "string" || description.trim().length < 10) {
-      return NextResponse.json({ error: "Please provide a longer description of your Solana program." }, { status: 400 });
+      return NextResponse.json({ error: "Please provide a longer description of your program." }, { status: 400 });
     }
-
     if (!GROQ_API_KEY) {
       return NextResponse.json({ error: "API key not configured" }, { status: 500 });
     }
-
     const response = await fetch(GROQ_URL, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${GROQ_API_KEY}`,
-      },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${GROQ_API_KEY}` },
       body: JSON.stringify({
         model: "llama-3.3-70b-versatile",
         messages: [
@@ -80,16 +74,13 @@ export async function POST(request: NextRequest) {
         top_p: 0.95,
       }),
     });
-
     if (!response.ok) {
       return NextResponse.json({ error: `Groq API error: ${response.status}` }, { status: 500 });
     }
-
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || "";
-
     return NextResponse.json({ analysis: content });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Analysis failed. Try again." }, { status: 500 });
   }
 }

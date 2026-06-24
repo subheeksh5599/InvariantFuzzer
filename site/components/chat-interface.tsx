@@ -7,11 +7,11 @@ import { Send, Terminal, Sparkles, AlertTriangle, Info, MessageSquare, Plus } fr
 import { ThemeSwitch } from "@/components/theme-switch";
 
 const suggestions = [
-  "A vault where users deposit SOL and earn yield. Only the admin can pause withdrawals.",
-  "An AMM pool with two tokens. Users swap tokens and LPs provide liquidity. There's a 0.3% fee.",
-  "A lending protocol where users deposit USDC as collateral and borrow other tokens. Positions get liquidated if health drops below 1.2.",
-  "A staking pool where users stake tokens for rewards proportional to their share and time staked.",
-  "A DAO governance program where token holders propose and vote. Proposals need 60% quorum to pass.",
+  "Check if my Anchor program has return-data spoofing risks in the oracle CPI call.",
+  "Audit this swap function for arbitrary CPI vulnerabilities.",
+  "Is my program reloading account state after every cross-program invocation?",
+  "Review my invoke_signed calls for non-canonical bump and seed leakage issues.",
+  "Scan my program for all four CPI vulnerability classes.",
 ];
 
 interface Thread {
@@ -123,7 +123,7 @@ export function ChatInterface(): ReactNode {
       <div className="flex items-center justify-between px-4 h-14 border-b border-border shrink-0">
         <div className="flex items-center gap-3">
           <Link href="/" className="text-sm font-medium text-foreground hover:text-accent transition-colors">
-            Invariant Fuzzer
+            CPI Safety
           </Link>
         </div>
         <div className="flex items-center gap-2">
@@ -175,10 +175,10 @@ export function ChatInterface(): ReactNode {
               {messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
                   <Sparkles className="h-7 w-7 text-accent mb-4" />
-                  <h2 className="text-xl font-semibold text-foreground mb-2">Describe your Solana program</h2>
-                  <p className="text-sm text-muted-foreground max-w-md mb-8">
-                    Describe what your program does in plain English. The AI will discover invariants, score maturity, and flag security gaps.
-                  </p>
+              <h2 className="text-xl font-semibold text-foreground mb-2">Describe your Solana program</h2>
+              <p className="text-sm text-muted-foreground max-w-md mb-8">
+                Describe what your program does and what CPI calls it makes. The AI will check for return-data spoofing, arbitrary CPI, stale account after CPI, and non-canonical PDA signing.
+              </p>
                   <div className="w-full max-w-lg space-y-2">
                     <p className="text-xs text-muted-foreground font-medium mb-3">Try an example:</p>
                     {suggestions.map((s, i) => (

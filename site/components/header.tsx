@@ -70,7 +70,7 @@ export function Header(): ReactNode {
           >
             <Link href="/" className="focus-ring" aria-label="Solana Invariant Fuzzer home">
               <span className="font-semibold text-white text-lg tracking-tight">
-                Invariant <span className="font-normal opacity-60">Fuzzer</span>
+                CPI <span className="font-normal opacity-60">Safety</span>
               </span>
             </Link>
           </motion.div>

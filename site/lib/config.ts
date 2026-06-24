@@ -1,14 +1,8 @@
-/**
- * ============================================================================
- * SITE CONFIGURATION — Solana Invariant Fuzzer
- * ============================================================================
- */
-
 export const siteConfig = {
-  name: "Solana Invariant Fuzzer",
-  tagline: "AI-Powered Invariant Discovery & Fuzz Orchestration",
+  name: "Solana CPI Safety",
+  tagline: "Detect & Prevent Cross-Program Invocation Vulnerabilities",
   description:
-    "The first AI-native invariant engineering skill for Solana programs. Reads your code, discovers invariants, generates Trident fuzz harnesses, and produces executable PoCs for violations.",
+    "A Claude Code skill that detects four classes of CPI vulnerabilities — return-data spoofing, arbitrary CPI, stale account after CPI, and non-canonical PDA signing — with runnable PoCs for each.",
   url: "https://site-seven-ochre-61.vercel.app",
   twitter: "@superteambr",
   github: "https://github.com/subheeksh5599/InvariantFuzzer",

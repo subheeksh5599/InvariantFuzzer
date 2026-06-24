@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Solana Invariant Fuzzer - Standard Installer
-# AI-powered invariant discovery & fuzz orchestration for Solana
+# Solana CPI Safety - Standard Installer
+# Detect and prevent CPI vulnerabilities for Solana
 # Installs with recommended defaults. For custom options, use ./install-custom.sh
 
 set -e

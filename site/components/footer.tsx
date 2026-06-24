@@ -33,7 +33,7 @@ export function Footer(): ReactNode {
                 <path d="M9 12l2 2 4-4"/>
               </svg>
               <span className="font-semibold text-foreground text-lg tracking-tight">
-                Invariant <span className="font-normal text-muted-foreground">Fuzzer</span>
+                CPI <span className="font-normal text-muted-foreground">Safety</span>
               </span>
             </Link>
             <p className="text-muted-foreground mt-4 text-sm">

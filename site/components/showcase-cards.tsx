@@ -2,7 +2,7 @@
 
 import { motion } from "motion/react";
 import Link from "next/link";
-import { ArrowRight, Search, Zap, FileText } from "lucide-react";
+import { ArrowRight, AlertTriangle, Shield, Lock } from "lucide-react";
 import type { ReactNode } from "react";
 
 interface CardData {
@@ -15,25 +15,25 @@ interface CardData {
 
 const cards: CardData[] = [
   {
-    title: "Invariant Discovery",
-    subtitle: "/fuzz-plan",
-    icon: <Search className="h-8 w-8" />,
-    gradient: "from-violet-600 via-purple-600 to-indigo-700",
-    items: ["22 extraction patterns", "130+ pre-built invariants", "Maturity scoring 0-5"],
+    title: "Return-Data Spoofing",
+    subtitle: "/audit-cpi",
+    icon: <AlertTriangle className="h-8 w-8" />,
+    gradient: "from-red-600 via-rose-600 to-red-800",
+    items: ["get_return_data() risks", "Producer verification", "Anchor + Pinocchio PoCs"],
   },
   {
-    title: "Fuzz Orchestration",
-    subtitle: "/fuzz-run",
-    icon: <Zap className="h-8 w-8" />,
-    gradient: "from-indigo-600 via-blue-700 to-violet-700",
-    items: ["Trident spec generation", "Coverage-guided mutations", "12,000 tx/s execution"],
+    title: "Arbitrary CPI",
+    subtitle: "Detection patterns",
+    icon: <Shield className="h-8 w-8" />,
+    gradient: "from-orange-600 via-amber-700 to-orange-800",
+    items: ["Fake SPL Token attacks", "Program ID validation", "LiteSVM test suite"],
   },
   {
-    title: "PoC Generation",
-    subtitle: "/fuzz-report",
-    icon: <FileText className="h-8 w-8" />,
-    gradient: "from-purple-700 via-violet-800 to-indigo-900",
-    items: ["Violation triage tree", "Executable PoC tests", "Root cause analysis"],
+    title: "Stale Account + PDA",
+    subtitle: "Mitigation guides",
+    icon: <Lock className="h-8 w-8" />,
+    gradient: "from-violet-700 via-purple-800 to-indigo-900",
+    items: ["account.reload() patterns", "Canonical bump enforcement", "Seed leakage prevention"],
   },
 ];
 
