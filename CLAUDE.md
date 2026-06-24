@@ -1,6 +1,6 @@
 # Solana CPI Safety — Claude Code Configuration
 
-> Repository: https://github.com/subheeksh5599/InvariantFuzzer
+> Repository: https://github.com/subheeksh5599/solana-cpi-safety
 
 ## What this skill is
 

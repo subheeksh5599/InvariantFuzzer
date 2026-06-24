@@ -56,7 +56,7 @@ export function Hero(): ReactNode {
           <Link href="/chat" className="focus-ring group inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-medium text-black transition-all hover:bg-white/90 hover:shadow-lg hover:shadow-white/10">
             Try Skills <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </Link>
-          <Link href="https://github.com/subheeksh5599/InvariantFuzzer" target="_blank" className="focus-ring inline-flex items-center gap-2 rounded-xl border border-white/20 px-6 py-3 text-sm font-medium text-white transition-all hover:bg-white/10">
+          <Link href="https://github.com/subheeksh5599/solana-cpi-safety" target="_blank" className="focus-ring inline-flex items-center gap-2 rounded-xl border border-white/20 px-6 py-3 text-sm font-medium text-white transition-all hover:bg-white/10">
             View on GitHub
           </Link>
         </motion.div>

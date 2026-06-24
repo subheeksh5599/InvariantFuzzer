@@ -10,7 +10,7 @@ export const siteConfig = {
   authors: [
     {
       name: "Solana CPI Safety Contributors",
-      url: "https://github.com/subheeksh5599/InvariantFuzzer",
+      url: "https://github.com/subheeksh5599/solana-cpi-safety",
     },
   ],
   keywords: [

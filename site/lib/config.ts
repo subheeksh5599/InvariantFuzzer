@@ -5,7 +5,7 @@ export const siteConfig = {
     "A Claude Code skill that detects four classes of CPI vulnerabilities — return-data spoofing, arbitrary CPI, stale account after CPI, and non-canonical PDA signing — with runnable PoCs for each.",
   url: "https://site-seven-ochre-61.vercel.app",
   twitter: "@superteambr",
-  github: "https://github.com/subheeksh5599/InvariantFuzzer",
+  github: "https://github.com/subheeksh5599/solana-cpi-safety",
 
   nav: {
     cta: {
@@ -14,7 +14,7 @@ export const siteConfig = {
     },
     signIn: {
       text: "GitHub",
-      href: "https://github.com/subheeksh5599/InvariantFuzzer",
+      href: "https://github.com/subheeksh5599/solana-cpi-safety",
     },
   },
 } as const;

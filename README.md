@@ -97,8 +97,8 @@ Does this function reload account state after CPI?
 ## Quick Start
 
 ```bash
-git clone https://github.com/subheeksh5599/InvariantFuzzer
-cd InvariantFuzzer
+git clone https://github.com/subheeksh5599/solana-cpi-safety
+cd solana-cpi-safety
 
 # Install the skill
 ./install-custom.sh
@@ -110,13 +110,13 @@ cd poc/return-data-spoofing && npm install && npm test
 ## Adding to Solana AI Kit
 
 ```bash
-git submodule add https://github.com/subheeksh5599/InvariantFuzzer.git .claude/skills/ext/solana-cpi-safety
+git submodule add https://github.com/subheeksh5599/solana-cpi-safety.git .claude/skills/ext/solana-cpi-safety
 ```
 
 ```gitmodules
 [submodule ".claude/skills/ext/solana-cpi-safety"]
     path = .claude/skills/ext/solana-cpi-safety
-    url = https://github.com/subheeksh5599/InvariantFuzzer.git
+    url = https://github.com/subheeksh5599/solana-cpi-safety.git
 ```
 
 ## Why It's Unique
@@ -156,7 +156,7 @@ The skill bundle has no runtime requirements — it is plain Markdown.
 ## Repository Structure
 
 ```
-InvariantFuzzer/
+solana-cpi-safety/
 ├── README.md
 ├── LICENSE
 ├── CLAUDE.md

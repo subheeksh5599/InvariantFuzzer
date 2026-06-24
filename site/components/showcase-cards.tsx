@@ -84,7 +84,7 @@ export function ShowcaseCards(): ReactNode {
           <p className="max-w-md text-lg text-muted-foreground">
             From invariant discovery through fuzz orchestration to executable PoCs — a complete security pipeline in three Claude Code commands.
           </p>
-          <Link href="https://github.com/subheeksh5599/InvariantFuzzer" target="_blank" className="group flex shrink-0 items-center gap-2 text-xl font-medium text-muted-foreground transition-colors hover:text-foreground">
+          <Link href="https://github.com/subheeksh5599/solana-cpi-safety" target="_blank" className="group flex shrink-0 items-center gap-2 text-xl font-medium text-muted-foreground transition-colors hover:text-foreground">
             Read the docs
             <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-0.5" />
           </Link>

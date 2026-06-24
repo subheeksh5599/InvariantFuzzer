@@ -24,21 +24,21 @@ export function BottomCTA(): ReactNode {
               <div className="inline-flex items-center gap-3 rounded-xl border border-border bg-background px-5 py-3">
                 <Terminal className="h-4 w-4 text-muted-foreground" />
                 <code className="text-sm text-foreground font-mono">
-                  curl -fsSL https://raw.githubusercontent.com/subheeksh5599/InvariantFuzzer/master/install.sh | bash
+                  curl -fsSL https://raw.githubusercontent.com/subheeksh5599/solana-cpi-safety/master/install.sh | bash
                 </code>
               </div>
             </div>
 
             <div className="mt-6 flex flex-wrap gap-3">
               <Link
-                href="https://github.com/subheeksh5599/InvariantFuzzer"
+                href="https://github.com/subheeksh5599/solana-cpi-safety"
                 target="_blank"
                 className="inline-flex h-12 cursor-pointer items-center rounded-full bg-background px-8 font-medium text-foreground transition-opacity hover:opacity-90"
               >
                 Star on GitHub
               </Link>
               <Link
-                href="https://github.com/subheeksh5599/InvariantFuzzer/blob/main/README.md"
+                href="https://github.com/subheeksh5599/solana-cpi-safety/blob/main/README.md"
                 target="_blank"
                 className="inline-flex h-12 cursor-pointer items-center rounded-full border border-border px-8 font-medium text-foreground transition-colors hover:bg-background"
               >
