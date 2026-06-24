@@ -1,10 +1,17 @@
-# solana-cpi-safety-skill
+# Solana CPI Safety
 
-Solana CPI safety skill for Claude Code — detects and prevents four cross-program invocation vulnerability classes, with first-class coverage of CPI return-data spoofing.
+> Detect and prevent cross-program invocation vulnerabilities in Solana programs
+
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Solana](https://img.shields.io/badge/Solana-black?logo=solana)](https://solana.com)
+[![Claude Code](https://img.shields.io/badge/Claude_Code-powered-orange)](https://claude.ai)
+[![Live Site](https://img.shields.io/badge/live-site-green)](https://site-seven-ochre-61.vercel.app)
+
+A Claude Code skill that detects and prevents four classes of cross-program invocation vulnerabilities in Solana programs, with first-class coverage of CPI return-data spoofing and five runnable proof-of-concept exploits.
 
 ## What it is
 
-Cross-program invocation is Solana's most common source of severe, exploitable bugs. This skill teaches Claude Code to recognize, explain, and fix the four classes that account for the majority of High and Critical audit findings:
+Cross-program invocation is Solana's most common source of severe, exploitable bugs. This skill teaches Claude Code to recognize, explain, and fix the four classes that account for the majority of High and Critical audit findings.
 
 ### The four CPI vulnerability classes
 
@@ -19,7 +26,7 @@ Cross-program invocation is Solana's most common source of severe, exploitable b
 
 The crown-jewel coverage is CPI return-data spoofing. It is the least-documented of the four classes and the hardest to catch in review. The attack surface is the `set_return_data` / `get_return_data` syscall pair: any program invoked before yours (or by yours) can overwrite the slot. A DeFi program that calls an oracle CPI and then reads `get_return_data()` without checking `program_id == ORACLE_PROGRAM_ID` is fully exploitable.
 
-This skill is anchored on a real upstream-fixed finding: Anchor CPI return-data spoofing, CVSS 7.5, fixed upstream, placing 1st of 116 across a 14-protocol audit.
+Anchored on a real upstream-fixed finding: Anchor CPI return-data spoofing, CVSS 7.5, fixed upstream.
 
 Both Anchor and native/Pinocchio patterns are covered.
 
@@ -28,190 +35,108 @@ Both Anchor and native/Pinocchio patterns are covered.
 ### Skill bundle
 
 ```
-skills/
-  solana-cpi-safety/
-    SKILL.md                    # Routing entry point
-    cpi-return-data-spoofing.md # Crown jewel sub-skill
-    arbitrary-cpi.md            # Arbitrary CPI sub-skill
-    account-reload.md           # Stale account sub-skill
-    pda-cpi-signing.md          # PDA signing sub-skill
-    poc-harness.md              # PoC test harness guide
-    cpi-checklist.md            # Pre-audit CPI checklist
-    rules/
-      rust.md                   # Rust code rule (Cursor-style globs frontmatter)
+skill/
+  SKILL.md                         # Routing entry point
+  cpi-return-data-spoofing.md      # Crown jewel sub-skill
+  arbitrary-cpi.md                 # Arbitrary CPI sub-skill
+  account-reload.md                # Stale account sub-skill
+  pda-cpi-signing.md               # PDA signing sub-skill
+  poc-harness.md                   # PoC test harness guide
+  cpi-checklist.md                 # Pre-audit CPI checklist
+  rules/
+    rust.md                        # Rust code rule
 
 agents/
-  cpi-auditor.md                # Autonomous CPI audit agent
+  cpi-auditor.md                   # Autonomous CPI audit agent
 
 commands/
-  audit-cpi.md                  # /audit-cpi command
+  audit-cpi.md                     # /audit-cpi command
 
 poc/
-  return-data-spoofing/         # Runnable LiteSVM + TypeScript PoC (incl. Variant B)
-  pinocchio-return-data/        # Runnable LiteSVM PoC (Pinocchio crown-jewel variant)
-  arbitrary-cpi/                # Runnable LiteSVM + TypeScript PoC
-  account-reload/               # Runnable LiteSVM + TypeScript PoC
-  pda-cpi-signing/              # Runnable LiteSVM + TypeScript PoC
+  return-data-spoofing/            # Runnable LiteSVM + TypeScript PoC (incl. Variant B)
+  pinocchio-return-data/           # Runnable LiteSVM PoC (Pinocchio crown-jewel variant)
+  arbitrary-cpi/                   # Runnable LiteSVM + TypeScript PoC
+  account-reload/                  # Runnable LiteSVM + TypeScript PoC
+  pda-cpi-signing/                 # Runnable LiteSVM + TypeScript PoC
 ```
 
 ### The /audit-cpi command
 
 Invoke `/audit-cpi` in any Claude Code session to scan a Solana repository for all four CPI vulnerability classes and produce a structured finding report with remediation steps.
 
-### The cpi-auditor agent
-
-A dedicated sub-agent that performs systematic CPI audits. Routes to the appropriate sub-skill for each finding class, writes exploit PoC sketches, and proposes fixes aligned with Anchor or native/Pinocchio idioms.
-
-### The rust.md rule
-
-A Rust code rule with Cursor-style `globs:` frontmatter (shipped as `rust.md` so it renders on GitHub). In Cursor it auto-loads on Rust file edits and routes CPI-touching changes to the relevant sub-skill and `cpi-checklist.md`. Claude Code has no auto-on-edit rule mechanism, so there it is reference material the skill cites — or drop it into a project `.claude/rules/` (with `paths:` frontmatter) for path-scoped context.
-
 ### Runnable PoCs
-
-Five runnable PoCs cover the four vulnerability classes — the crown-jewel class (return-data spoofing) ships both an Anchor and a Pinocchio proof. Each PoC pairs on-chain programs (attacker + victim) with a TypeScript LiteSVM test suite running EXPLOIT / DEFENSE / POSITIVE CONTROL cases. Programs are Anchor except where noted:
-
-**poc/return-data-spoofing/** (crown jewel; 6 cases)
-- EXPLOIT: victim adopts the spoofed price written by the attacker program
-- DEFENSE: `UntrustedProducer` error raised when the producer check fails
-- POSITIVE CONTROL: accepts return data from the real oracle program
-- Variant B (deeper-stack leak): a benign relay surfaces a deeper program's return data — EXPLOIT adopts a deep attacker's spoof, DEFENSE rejects it via the producer check, POSITIVE accepts the real oracle
-
-**poc/pinocchio-return-data/** (crown jewel, Pinocchio; 3 cases)
-- The same exploit and fix as the Anchor return-data PoC, written against raw Pinocchio (`pinocchio::cpi`, `AccountView`, `Address`) and built with `cargo-build-sbf`
-- One `consumer` program selects the unchecked vs checked path via a one-byte instruction discriminator (0 = vulnerable, 1 = fixed)
-- EXPLOIT adopts the attacker's spoofed `1`; DEFENSE rejects with `UntrustedProducer`; POSITIVE accepts the trusted oracle's `50_000`
-
-**poc/arbitrary-cpi/**
-- EXPLOIT: attacker substitutes a fake SPL Token program; attacker-controlled code executes inside the vault's CPI
-- DEFENSE: explicit program_id check rejects the substitution before any CPI is opened
-- POSITIVE CONTROL: the real SPL Token program succeeds
-
-**poc/account-reload/**
-- EXPLOIT: a vulnerable consumer checks a pre-CPI balance snapshot, so a vault drained by the CPI passes a solvency check
-- DEFENSE: the fixed consumer re-reads after the CPI (the `reload()` lesson) and rejects the drained vault
-- POSITIVE CONTROL: a partial withdrawal that stays solvent is accepted
-
-**poc/pda-cpi-signing/**
-- EXPLOIT: a vault PDA signs (`invoke_signed`) with seeds `[b"vault", authority]`, but the authority is never required to sign — an attacker drains a victim's vault by passing the victim's pubkey unsigned
-- DEFENSE: the fixed program requires the authority to sign, rejecting the unsigned drain
-- POSITIVE CONTROL: the real authority withdraws from its own vault
-- A second test file (`non-canonical-bump.test.ts`) covers the non-canonical-bump facet: a vulnerable program creates a one-per-user registry PDA via `invoke_signed` with a caller-supplied bump, so an attacker registers the same user twice (canonical then a non-canonical bump) to mint duplicate accounts; the fixed program pins the canonical bump via `find_program_address`
-
-## Quickstart
-
-### Install
-
-One-line install (recommended) — full bundle (skill + `/audit-cpi` command + `cpi-auditor` agent), global (`~/.claude`):
-
-```bash
-npx @rector-labs/solana-cpi-safety-skill
-# project-local instead: npx @rector-labs/solana-cpi-safety-skill --project
-```
-
-Skill-only, via the open agent-skills ecosystem:
-
-```bash
-npx skills add RECTOR-LABS/solana-cpi-safety-skill
-```
-
-As a native Claude Code plugin (full bundle), via the RECTOR-LABS marketplace:
-
-```bash
-/plugin marketplace add RECTOR-LABS/claude-plugins
-/plugin install solana-cpi-safety@rector-labs
-```
-
-From a clone (runs the same installer locally):
-
-```bash
-git clone https://github.com/subheeksh5599/InvariantFuzzer.git
-cd InvariantFuzzer
-node bin/cli.mjs                      # global (~/.claude)
-# project-local: node bin/cli.mjs --project              # ./.claude
-# custom base:   node bin/cli.mjs --target <dir>         # <dir> is a config base: installs <dir>/skills, <dir>/commands, <dir>/agents
-```
-
-Then restart Claude Code. Note: installed as a plugin the command is namespaced `/solana-cpi-safety:audit-cpi`; via npx or the local installer it is `/audit-cpi`.
-
-### Run a PoC
 
 The compiled programs and their keypairs are committed, so the PoCs run with Node alone — no Solana/Anchor toolchain required.
 
 ```bash
-# Return-data spoofing PoC
-cd poc/return-data-spoofing
-npm install
-npm test
-```
+# Return-data spoofing PoC (6 test cases)
+cd poc/return-data-spoofing && npm install && npm test
 
-6 tests run, 6 pass (Variant A + Variant B deeper-stack):
-- EXPLOIT: "vulnerable consumer trusts spoofed return data" — tx succeeds, consumer
-  adopts attacker-set price 1 (spoofed value confirmed in return data)
-- DEFENSE: "fixed consumer rejects attacker oracle" — tx fails with error UntrustedProducer
-- POSITIVE CONTROL: "fixed consumer accepts legitimate oracle" — tx succeeds, consumer
-  reads real oracle price 50000
-- Variant B (deeper-stack leak): EXPLOIT adopts a deep attacker's spoof through a benign
-  relay; DEFENSE rejects it via the producer check; POSITIVE accepts the real oracle
+# Arbitrary CPI PoC (3 test cases)
+cd poc/arbitrary-cpi && npm install && npm test
 
-```bash
-# Arbitrary CPI PoC
-cd poc/arbitrary-cpi
-npm install
-npm test
-```
-
-3 tests run, 3 pass:
-- EXPLOIT: "vault_vulnerable accepts fake_token program substitution" — tx succeeds,
-  return data byte 0 = 1 proving fake_token (attacker program) executed
-- DEFENSE: "vault_fixed rejects fake_token program substitution" — tx fails with error
-  WrongTokenProgram
-- POSITIVE CONTROL: "vault_fixed accepts real_token" — tx succeeds, return data byte 0 = 0
-
-```bash
-# account-reload (stale-account-after-CPI) PoC
+# Stale account after CPI PoC (3 test cases)
 cd poc/account-reload && npm install && npm test
-# pda-cpi-signing (invoke_signed) PoC
+
+# PDA CPI signing PoC (4 test cases)
 cd poc/pda-cpi-signing && npm install && npm test
-# pinocchio-return-data (Pinocchio crown-jewel variant) PoC
+
+# Pinocchio return-data PoC (3 test cases)
 cd poc/pinocchio-return-data && npm install && npm test
 ```
 
-These run the same EXPLOIT / DEFENSE / POSITIVE CONTROL shape (3 tests each).
-
-#### Rebuild the programs from source (optional)
-
-With Anchor 1.0.2 and the Solana toolchain installed, run `anchor build` inside an Anchor `poc/<scenario>/` directory. The `pinocchio-return-data` PoC is built with `cargo-build-sbf` instead (see CLAUDE.md for the toolchain notes). The committed program keypairs keep the program ids stable across rebuilds.
-
 ### Use in Claude Code
 
-After installing, open any Claude Code session in a Solana project and ask:
-
 ```
-Audit this program for CPI vulnerabilities
 /audit-cpi
-Are there any return-data spoofing risks in programs/my-program/src/lib.rs?
-Review this CPI call for arbitrary-program substitution
+Check if this program has return-data spoofing risks
+Review this CPI call for arbitrary program substitution
+Does this function reload account state after CPI?
+```
+
+## Quick Start
+
+```bash
+git clone https://github.com/subheeksh5599/InvariantFuzzer
+cd InvariantFuzzer
+
+# Install the skill
+./install-custom.sh
+
+# Run the PoCs (no toolchain needed)
+cd poc/return-data-spoofing && npm install && npm test
 ```
 
 ## Adding to Solana AI Kit
 
-The kit (solanabr/solana-ai-kit) registers external skills as git submodules under `.claude/skills/ext/<name>`. To add this skill:
-
 ```bash
-git submodule add https://github.com/RECTOR-LABS/solana-cpi-safety-skill.git .claude/skills/ext/solana-cpi-safety
+git submodule add https://github.com/subheeksh5599/InvariantFuzzer.git .claude/skills/ext/solana-cpi-safety
 ```
 
-The resulting `.gitmodules` block (ready to paste):
-
-```
+```gitmodules
 [submodule ".claude/skills/ext/solana-cpi-safety"]
     path = .claude/skills/ext/solana-cpi-safety
-    url = https://github.com/RECTOR-LABS/solana-cpi-safety-skill.git
+    url = https://github.com/subheeksh5599/InvariantFuzzer.git
 ```
 
-## Requirements (for the PoCs)
+## Why It's Unique
 
-To run the PoCs (primary path — programs are precompiled):
+| Existing Tool | What It Does |
+|---------------|-------------|
+| Trail of Bits skills | General security audit guidance |
+| Safe Solana Builder | Security-first code generation |
+| QEDGen solana-skills | Formal verification with Lean 4 |
+
+| Solana CPI Safety | What It Adds |
+|-------------------|-------------|
+| CPI return-data spoofing detection | Novel coverage of the least-documented CPI attack class |
+| Arbitrary CPI detection | Program substitution and fake-SPL token patterns |
+| Stale account detection | account.reload() enforcement after every CPI |
+| PDA CPI signing audit | Canonical bump and seed leakage verification |
+| 5 runnable PoCs | LiteSVM + TypeScript test suites — works with Node alone |
+| /audit-cpi command | One-command structured audit across all four classes |
+
+## Requirements (for the PoCs)
 
 | Tool | Version |
 |------|---------|
@@ -226,80 +151,40 @@ To rebuild the programs from source (optional):
 | Rust | 1.85+ |
 | Node.js | >= 20 |
 
-The skill bundle (skills/solana-cpi-safety/, commands/, agents/) has no runtime requirements — it is plain Markdown.
+The skill bundle has no runtime requirements — it is plain Markdown.
 
-## Repository structure
+## Repository Structure
 
 ```
-solana-cpi-safety-skill/
-  README.md                   # This file
-  CLAUDE.md                   # Contributor guidance
-  LICENSE                     # MIT
-  package.json                # npm package (@rector-labs/solana-cpi-safety-skill)
-  bin/cli.mjs                 # Zero-dependency Node installer (npx and `node bin/cli.mjs`)
-  test/                       # node:test suites (installer + manifest)
-
-  .claude-plugin/
-    plugin.json               # Claude Code plugin manifest
-
-  skills/
-    solana-cpi-safety/
-      SKILL.md
-      cpi-return-data-spoofing.md
-      arbitrary-cpi.md
-      account-reload.md
-      pda-cpi-signing.md
-      poc-harness.md
-      cpi-checklist.md
-      rules/
-        rust.md
-
-  agents/
-    cpi-auditor.md
-
-  commands/
-    audit-cpi.md
-
-  poc/
-    return-data-spoofing/
-      programs/               # Anchor victim + attacker + relay programs
-      tests/                  # LiteSVM TypeScript test suite (Variant A + B)
-    pinocchio-return-data/
-      programs/               # Pinocchio oracle + attacker + consumer programs
-      tests/                  # LiteSVM TypeScript test suite
-    arbitrary-cpi/
-      programs/               # Anchor victim + attacker programs
-      tests/                  # LiteSVM TypeScript test suite
-    account-reload/
-      programs/               # Anchor ledger + consumer programs
-      tests/                  # LiteSVM TypeScript test suite
-    pda-cpi-signing/
-      programs/               # Anchor vault programs
-      tests/                  # LiteSVM TypeScript test suite
-```
-
-## RECTOR-LABS Solana security suite
-
-This skill is the first of a three-part Solana security workflow from RECTOR-LABS — find vulnerabilities, prove them, respond to incidents:
-
-| Skill | Stage | Status |
-|-------|-------|--------|
-| **solana-cpi-safety** (this repo) | Find — detect and prevent CPI vulnerability classes | Available |
-| **solana-poc-forge** | Prove — forge runnable PoCs and exploits | Planned |
-| **solana-incident-response** | Respond — triage, contain, and disclose live incidents | Planned |
-
-All three install from the shared `rector-labs` marketplace:
-
-```bash
-/plugin marketplace add RECTOR-LABS/claude-plugins
-/plugin install solana-cpi-safety@rector-labs
+InvariantFuzzer/
+├── README.md
+├── LICENSE
+├── CLAUDE.md
+├── install.sh / install-custom.sh
+├── skill/
+│   ├── SKILL.md
+│   ├── cpi-return-data-spoofing.md
+│   ├── arbitrary-cpi.md
+│   ├── account-reload.md
+│   ├── pda-cpi-signing.md
+│   ├── poc-harness.md
+│   ├── cpi-checklist.md
+│   └── rules/rust.md
+├── agents/
+│   └── cpi-auditor.md
+├── commands/
+│   └── audit-cpi.md
+├── rules/
+│   └── rust.md
+├── poc/
+│   ├── return-data-spoofing/
+│   ├── pinocchio-return-data/
+│   ├── arbitrary-cpi/
+│   ├── account-reload/
+│   └── pda-cpi-signing/
+└── site/          # Landing page
 ```
 
 ## License
 
-MIT — see [LICENSE](LICENSE) for details.
-
----
-
-Maintained by [RECTOR-LABS](https://github.com/RECTOR-LABS).
-Built for the Superteam x Solana AI Kit bounty.
+MIT — see [LICENSE](LICENSE)

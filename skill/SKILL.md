@@ -55,7 +55,4 @@ Sub-skills to read when needed:
 
 ## Related skills
 
-This skill is part of the RECTOR-LABS Solana security suite (find -> prove -> respond). The following companion skills are planned and not yet available:
-
-- **solana-poc-forge** — forge standalone runnable proof-of-concept exploits for Solana programs (generalizes the PoC harness in [poc-harness.md](poc-harness.md)).
-- **solana-incident-response** — triage, contain, and disclose live Solana security incidents.
+This skill extends [solana-dev-skill](https://github.com/solana-foundation/solana-dev-skill) for core Solana knowledge and integrates with the [Solana AI Kit](https://github.com/solanabr/solana-ai-kit).

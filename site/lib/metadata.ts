@@ -6,11 +6,11 @@ export const siteConfig = {
     "A Claude Code skill that detects and prevents four classes of cross-program invocation vulnerabilities in Solana programs with runnable proof-of-concept exploits.",
   url: "https://site-seven-ochre-61.vercel.app",
   ogImage: "/og-image.png",
-  creator: "@RECTOR_LABS",
+  creator: "@subheeksh5599",
   authors: [
     {
-      name: "RECTOR-LABS",
-      url: "https://github.com/RECTOR-LABS",
+      name: "Solana CPI Safety Contributors",
+      url: "https://github.com/subheeksh5599/InvariantFuzzer",
     },
   ],
   keywords: [
